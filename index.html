@@ -76,7 +76,7 @@
   .quiz-q{ color:var(--cyan); font-size:13px; margin:11px 0 5px; }
   .chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .chip{ font-family:'Jua',sans-serif; font-size:13px; padding:7px 12px; border-radius:20px; user-select:none;
-    background:rgba(0,0,0,.3); border:1.5px solid #6a3aa0; color:#cbb6e8; cursor:pointer; transition:.12s; }
+    text-align:center; background:rgba(0,0,0,.3); border:1.5px solid #6a3aa0; color:#cbb6e8; cursor:pointer; transition:.12s; }
   .chip.on{ background:var(--mag); border-color:var(--yel); color:#fff; box-shadow:0 0 12px var(--mag); }
   .actions{ display:flex; gap:8px; margin-top:14px; }
   .actions button{ margin-top:0; font-size:15px; padding:13px; }
@@ -93,6 +93,12 @@
   .dex-item span{ flex:1; font-size:13px; color:#fff; }
   .dex-empty{ text-align:center; color:#9b6ad6; padding:24px 0; }
   .close-btn{ background:#4a3a66; color:#fff; }
+  .confetti{ position:fixed; top:-24px; width:11px; height:16px; z-index:20; pointer-events:none; border-radius:2px;
+    animation:fall 2.6s linear forwards; }
+  @keyframes fall{ to{ transform:translateY(108vh) rotate(720deg); opacity:.35; } }
+  @keyframes shake{ 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)} }
+  .shake{ animation:shake .55s; }
   .foot{ text-align:center; color:#9b6ad6; font-size:11px; margin-top:20px; }
 </style>
 </head>
@@ -139,6 +145,7 @@ const QUIZ = [
   { k:'내 목표', q:'넌 뭘 원해?', opts:['사귀고 싶음💕','그냥 궁금🤔','손절각 재는 중✂️'] },
   { k:'적극성', q:'누가 더 들이대?', opts:['내가 더🙋','상대가 더','서로 안 함😶','모름'] },
   { k:'연락 스타일', q:'평소 연락은 어떤 식?', opts:['매일 함📞','하루에도 여러 번🔥','가끔🙂','며칠에 한 번','내가 먼저만🙋','상대가 먼저 자주💌','읽고 늦게 답🐢','새벽에만🌙','거의 안 함🚫','들쭉날쭉🎲'] },
+  { k:'지금 미션', q:'🎯 지금 뭐 하려고?', opts:['그냥 떠보기👀','고백할까💘','사과해야 됨🙏','거절하고 싶음🙅','화해하고 싶음🤝','밀당 중😼','약속 잡기📅'] },
 ];
 const picks = {};
 function renderQuiz(){
@@ -231,6 +238,7 @@ function renderSom(d){
   const again = document.createElement('button'); again.className='again'; again.textContent='💘 다시 썸 판독 💘'; again.onclick=somScan; box.append(again);
   s.append(box);
   saveDex(d, score); // 판독할 때마다 도감에 자동 수집
+  if(d.grade === 'SSR' || d.grade === 'SR') celebrate(d.grade === 'SSR' ? 90 : 45);
 }
 async function somScan(){
   const raw = document.getElementById('msg').value.trim();
@@ -307,6 +315,21 @@ function wrap(x, text, cx, cy, maxW, lh){
     else line = test;
   }
   if(line) x.fillText(line, cx, y);
+}
+// 높은 등급 뜨면 색종이 폭죽 + 기계 흔들림 (가챠 손맛)
+function celebrate(n){
+  const m = document.querySelector('.machine');
+  if(m){ m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake'); setTimeout(()=>m.classList.remove('shake'), 600); }
+  const colors = ['#ff2ed1','#00f0ff','#fff200','#7b2fff','#ffffff'];
+  for(let i=0; i<n; i++){
+    const p = document.createElement('div'); p.className = 'confetti';
+    p.style.left = (Math.random()*100) + 'vw';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDelay = (Math.random()*0.4) + 's';
+    p.style.animationDuration = (2.2 + Math.random()*1.2) + 's';
+    document.body.append(p);
+    setTimeout(()=>p.remove(), 3800);
+  }
 }
 </script>
 </body>
