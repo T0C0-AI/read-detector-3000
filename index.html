@@ -82,6 +82,7 @@
     background:rgba(0,0,0,.4); border:2px dashed #6a3aa0; border-radius:12px; outline:none; }
   .draft:focus{ border-color:var(--yel); }
   .coach-btn{ background:linear-gradient(90deg,#3ad17a,#00f0ff); color:#190034; }
+  .shot-btn{ background:linear-gradient(90deg,#ff8a3d,#ff2ed1); color:#fff; }
   .actions{ display:flex; gap:8px; margin-top:14px; }
   .actions button{ margin-top:0; font-size:15px; padding:13px; }
   .share-btn{ background:linear-gradient(90deg,var(--yel),var(--mag)); }
@@ -121,6 +122,8 @@
   <button class="ai-btn" onclick="somScan()">💘 썸 판독 (AI 관계분석) 💘</button>
   <input id="draft" class="draft" placeholder="✍️ (선택) 내가 보낼 답장 — 검사받고 싶으면 여기 입력">
   <button class="coach-btn" onclick="coachScan()">✍️ 내 답장 검사받기 ✍️</button>
+  <input type="file" id="shot" accept="image/*" style="display:none" onchange="shotPicked()">
+  <button class="shot-btn" onclick="document.getElementById('shot').click()">📸 카톡 캡처 사진으로 판독 📸</button>
 
   <div id="screen"></div>
   <p class="foot">※ 본 판독기는 과학적 근거가 1도 없습니다</p>
@@ -266,6 +269,37 @@ async function somScan(){
     if(!r.ok) throw new Error(d.error || '판독 실패');
     renderSom(d, payload, who);
   }catch(e){ clearInterval(t); showErr(e, somScan); }
+}
+// 📸 카톡 캡처 업로드 → 비전으로 읽어서 썸 판독
+function shotPicked(){
+  const f = document.getElementById('shot').files[0];
+  if(!f) return;
+  if(f.size > 5*1024*1024){ alert('사진이 너무 커 ㅠㅠ 5MB 이하로 줄여줘'); return; }
+  const r = new FileReader();
+  r.onload = ()=>{
+    const url = r.result;
+    const data = url.split(',')[1];
+    const media_type = (url.match(/^data:(.*?);/) || [])[1] || 'image/png';
+    document.getElementById('shot').value = ''; // 같은 사진 다시 고를 수 있게 초기화
+    shotScan(media_type, data);
+  };
+  r.readAsDataURL(f);
+}
+async function shotScan(media_type, data){
+  const who = document.getElementById('who').value.trim();
+  const ctx = QUIZ.map(g => picks[g.k] ? g.k + ': ' + picks[g.k] : null).filter(Boolean).join(' / ');
+  const payload = (ctx ? '[관계 정보] ' + ctx + '\n\n' : '') + '[대화]\n(첨부된 카톡 캡처를 읽고 분석)';
+  const t = showLoading(AI_STEPS);
+  try{
+    const [r] = await Promise.all([
+      fetch('/judge', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ msg: payload, mode:'som', image:{ media_type, data } }) }),
+      new Promise(res => setTimeout(res, 1550))
+    ]);
+    const d = await r.json();
+    clearInterval(t);
+    if(!r.ok) throw new Error(d.error || '판독 실패');
+    renderSom(d, payload, who);
+  }catch(e){ clearInterval(t); showErr(e, ()=>document.getElementById('shot').click()); }
 }
 
 // 수집 도감 (브라우저에만 저장, 최근 50개)
