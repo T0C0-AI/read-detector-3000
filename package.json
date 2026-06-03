@@ -1,0 +1,10 @@
+{
+  "name": "read-detector-3000",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "읽씹 판독기 3000 - 병맛 카톡 답장 판독기",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
