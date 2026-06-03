@@ -68,4 +68,4 @@ npm start
 
 ## 📜 라이선스
 
-[MIT](./LICENSE) © 2026 Daniel Kang
+[MIT](./LICENSE) © 2026 강다니엘
