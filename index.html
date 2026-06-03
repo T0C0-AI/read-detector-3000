@@ -113,6 +113,7 @@
 
   <p class="quiz-title">🔍 본격 판독 전, 너희 사이 좀 불자</p>
   <div class="quiz" id="quiz"></div>
+  <input id="who" class="draft" style="margin-top:0" placeholder="🏷️ (선택) 상대 별명 — 호감도 변화를 추적하려면 입력">
   <label>📨 상대 카톡 한 줄, 또는 대화 전체를 붙여넣어</label>
   <textarea id="msg" placeholder="예) 자니?
 또는 카톡 대화를 통째로 복붙"></textarea>
@@ -210,7 +211,7 @@ function showErr(e, retry){
   s.append(box);
 }
 // AI 응답은 신뢰 못 하므로 전부 textContent, 점수는 0~100으로 제한해 넣는다
-function renderSom(d, ctxPayload){
+function renderSom(d, ctxPayload, who){
   const s = document.getElementById('screen'); s.innerHTML = '';
   const box = document.createElement('div'); box.className='result';
   const g = GRADES[d.grade] || GRADES.N;
@@ -245,12 +246,13 @@ function renderSom(d, ctxPayload){
   act.append(sh, dx); box.append(act);
   const again = document.createElement('button'); again.className='again'; again.textContent='💘 다시 썸 판독 💘'; again.onclick=somScan; box.append(again);
   s.append(box);
-  saveDex(d, score); // 판독할 때마다 도감에 자동 수집
+  saveDex(d, score, who); // 판독할 때마다 도감에 자동 수집 (별명 있으면 호감도 추적)
   if(d.grade === 'SSR' || d.grade === 'SR') celebrate(d.grade === 'SSR' ? 90 : 45);
 }
 async function somScan(){
   const raw = document.getElementById('msg').value.trim();
   if(!raw){ alert('대화를 안 넣었잖아 ㅋㅋ 넣어봐'); return; }
+  const who = document.getElementById('who').value.trim();
   const ctx = QUIZ.map(g => picks[g.k] ? g.k + ': ' + picks[g.k] : null).filter(Boolean).join(' / ');
   const payload = (ctx ? '[관계 정보] ' + ctx + '\n\n[대화]\n' : '') + raw;
   const t = showLoading(AI_STEPS);
@@ -262,16 +264,16 @@ async function somScan(){
     const d = await r.json();
     clearInterval(t);
     if(!r.ok) throw new Error(d.error || '판독 실패');
-    renderSom(d, payload);
+    renderSom(d, payload, who);
   }catch(e){ clearInterval(t); showErr(e, somScan); }
 }
 
 // 수집 도감 (브라우저에만 저장, 최근 50개)
 const DEX_KEY = 'somtok_dex';
 function loadDex(){ try{ return JSON.parse(localStorage.getItem(DEX_KEY)) || []; }catch{ return []; } }
-function saveDex(d, score){
+function saveDex(d, score, who){
   const arr = loadDex();
-  arr.unshift({ g: GRADES[d.grade] ? d.grade : 'N', v: d.verdict || '', s: score });
+  arr.unshift({ g: GRADES[d.grade] ? d.grade : 'N', v: d.verdict || '', s: score, who: who || '' });
   localStorage.setItem(DEX_KEY, JSON.stringify(arr.slice(0, 50)));
 }
 function showDex(){
@@ -279,6 +281,24 @@ function showDex(){
   const m = document.createElement('div'); m.className = 'modal';
   const bx = document.createElement('div'); bx.className = 'modal-box';
   const h = document.createElement('h2'); h.textContent = '📁 내 썸 판독 도감 (' + arr.length + ')'; bx.append(h);
+  // 별명이 달린 기록은 사람별로 묶어 호감도 변화를 보여준다
+  const byWho = {};
+  arr.forEach(it => { if(it.who){ (byWho[it.who] = byWho[it.who] || []).push(it); } });
+  const names = Object.keys(byWho);
+  if(names.length){
+    const th = document.createElement('div'); th.className = 'rlabel'; th.style.marginTop = '2px'; th.textContent = '📈 호감도 추적'; bx.append(th);
+    names.forEach(nm => {
+      const scores = byWho[nm].slice().reverse().map(x => x.s || 0); // 오래된→최신 순
+      const first = scores[0], last = scores[scores.length - 1];
+      const trend = scores.length < 2 ? '🆕' : (last > first ? '📈 상승' : last < first ? '📉 하락' : '➡️ 유지');
+      const row = document.createElement('div'); row.className = 'dex-item'; row.style.borderLeftColor = '#00f0ff';
+      const b = document.createElement('b'); b.style.color = '#00f0ff'; b.textContent = '🏷️ ' + nm; row.append(b);
+      const sp = document.createElement('span'); sp.textContent = scores.join('% → ') + '%'; row.append(sp);
+      const tr = document.createElement('b'); tr.style.color = '#fff200'; tr.style.whiteSpace = 'nowrap'; tr.textContent = trend; row.append(tr);
+      bx.append(row);
+    });
+    const div = document.createElement('div'); div.className = 'rlabel'; div.textContent = '🗂️ 전체 기록'; bx.append(div);
+  }
   if(!arr.length){ const e = document.createElement('div'); e.className = 'dex-empty'; e.textContent = '아직 판독 기록이 없어 ㅋㅋ'; bx.append(e); }
   arr.forEach(it => {
     const g = GRADES[it.g] || GRADES.N;
