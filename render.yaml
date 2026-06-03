@@ -1,0 +1,12 @@
+# Render(무료 호스팅) 배포 설정
+# https://render.com 에서 이 레포를 연결하면 자동으로 읽혀요.
+# 배포 후 대시보드 Environment에서 ANTHROPIC_API_KEY 값을 직접 넣어야 합니다.
+services:
+  - type: web
+    name: read-detector-3000
+    runtime: node
+    plan: free
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false # 실제 키는 Render 대시보드에서 입력 (코드/레포엔 절대 안 들어감)

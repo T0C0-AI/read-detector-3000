@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 // .env에서 키 로드 (없어도 서버는 뜨되 /judge가 안내 메시지 반환)
 try { process.loadEnvFile(new URL('./.env', import.meta.url)); } catch {}
 const KEY = process.env.ANTHROPIC_API_KEY;
-const PORT = 8787;
+const PORT = process.env.PORT || 8787; // 호스팅(Render 등)이 주는 포트 우선, 로컬은 8787
 const MODEL = 'claude-haiku-4-5-20251001'; // 드립 생성엔 가볍고 싼 모델이면 충분
 
 const SYS = `너는 "읽씹 판독기 3000"이라는 병맛 점쟁이 기계다.
